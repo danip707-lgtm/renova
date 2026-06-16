@@ -2,236 +2,284 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Renova — Control de Clientes</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #080810; --surface: rgba(255,255,255,0.04); --surface-hover: rgba(255,255,255,0.07);
-    --glass: rgba(255,255,255,0.06); --glass-border: rgba(255,255,255,0.10);
-    --violet: #8B5CF6; --violet-light: #A78BFA; --violet-dim: rgba(139,92,246,0.15);
-    --text: #F4F4F8; --text-muted: rgba(244,244,248,0.5); --text-dim: rgba(244,244,248,0.3);
-    --green: #34D399; --green-dim: rgba(52,211,153,0.15);
-    --yellow: #FBBF24; --yellow-dim: rgba(251,191,36,0.15);
-    --red: #F87171; --red-dim: rgba(248,113,113,0.15);
-    --radius: 16px; --radius-sm: 10px;
-  }
-  html { scroll-behavior: smooth; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--surface:rgba(255,255,255,0.04);--surface-hover:rgba(255,255,255,0.08);
+  --glass:rgba(255,255,255,0.06);--glass-border:rgba(255,255,255,0.10);
+  --violet:#8B5CF6;--vl:#A78BFA;--vdim:rgba(139,92,246,0.15);--vglow:rgba(139,92,246,0.3);
+  --text:#F4F4F8;--tm:rgba(244,244,248,0.5);--td:rgba(244,244,248,0.28);
+  --green:#34D399;--gdim:rgba(52,211,153,0.15);
+  --yellow:#FBBF24;--ydim:rgba(251,191,36,0.15);
+  --red:#F87171;--rdim:rgba(248,113,113,0.15);
+  --orange:#FB923C;--odim:rgba(251,146,60,0.15);
+  --r:16px;--rs:10px;
+}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
-  /* Orbs */
-  .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-  .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35; }
-  .orb-1 { width:600px;height:600px;background:radial-gradient(circle,#6D28D9,transparent 70%);top:-200px;left:-100px; }
-  .orb-2 { width:500px;height:500px;background:radial-gradient(circle,#4C1D95,transparent 70%);bottom:-150px;right:-100px; }
-  .orb-3 { width:300px;height:300px;background:radial-gradient(circle,#7C3AED,transparent 70%);top:40%;left:60%; }
+/* ── ORBS ── */
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.3}
+.orb-1{width:600px;height:600px;background:radial-gradient(circle,#6D28D9,transparent 70%);top:-200px;left:-100px}
+.orb-2{width:500px;height:500px;background:radial-gradient(circle,#4C1D95,transparent 70%);bottom:-150px;right:-100px}
+.orb-3{width:300px;height:300px;background:radial-gradient(circle,#7C3AED,transparent 70%);top:40%;left:55%}
 
-  /* ── LOGIN SCREEN ── */
-  #login-screen {
-    position: fixed; inset: 0; z-index: 200;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .login-card {
-    background: rgba(15,12,30,0.85); border: 0.5px solid rgba(139,92,246,0.3);
-    border-radius: 24px; padding: 48px 40px; width: 100%; max-width: 400px;
-    backdrop-filter: blur(20px); text-align: center;
-  }
-  .login-logo { font-family:'Syne',sans-serif; font-weight:800; font-size:32px; letter-spacing:-1px; margin-bottom:8px; }
-  .login-logo span { color: var(--violet-light); }
-  .login-sub { color: var(--text-muted); font-size:14px; margin-bottom:36px; }
-  .login-label { display:block; text-align:left; font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; }
-  .login-input {
-    width:100%; background:rgba(255,255,255,0.06); border:0.5px solid var(--glass-border);
-    border-radius:var(--radius-sm); padding:12px 16px; color:var(--text);
-    font-family:'DM Sans',sans-serif; font-size:15px; outline:none; margin-bottom:16px;
-    transition: border-color 0.2s;
-  }
-  .login-input:focus { border-color: var(--violet); }
-  .login-input::placeholder { color: var(--text-dim); }
-  .login-btn {
-    width:100%; background:linear-gradient(135deg,#7C3AED,#5B21B6); border:none;
-    color:#fff; padding:13px; border-radius:var(--radius-sm); font-size:15px;
-    font-family:'DM Sans',sans-serif; font-weight:500; cursor:pointer;
-    transition: opacity 0.2s; margin-top:4px;
-  }
-  .login-btn:hover { opacity:0.85; }
-  .login-toggle { margin-top:20px; font-size:13px; color:var(--text-muted); }
-  .login-toggle a { color:var(--violet-light); cursor:pointer; text-decoration:none; }
-  .login-toggle a:hover { text-decoration:underline; }
-  .login-error { color:var(--red); font-size:13px; margin-bottom:12px; min-height:18px; }
-  .login-mode-label { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; margin-bottom:24px; }
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.login-card{background:rgba(12,10,28,0.92);border:0.5px solid rgba(139,92,246,0.35);border-radius:24px;padding:40px 32px;width:100%;max-width:400px;backdrop-filter:blur(24px);text-align:center}
+.login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:30px;letter-spacing:-1px;margin-bottom:6px}
+.login-logo span{color:var(--vl)}
+.login-sub{color:var(--tm);font-size:14px;margin-bottom:32px}
+.login-mode{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:20px}
+.login-err{color:var(--red);font-size:13px;margin-bottom:10px;min-height:18px}
+.lbl{display:block;text-align:left;font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px}
+.linp{width:100%;background:rgba(255,255,255,0.06);border:0.5px solid var(--glass-border);border-radius:var(--rs);padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;margin-bottom:14px;transition:border-color 0.2s;-webkit-appearance:none}
+.linp:focus{border-color:var(--violet)}
+.linp::placeholder{color:var(--td)}
+.lbtn{width:100%;background:linear-gradient(135deg,#7C3AED,#5B21B6);border:none;color:#fff;padding:14px;border-radius:var(--rs);font-size:15px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:opacity 0.2s;margin-top:4px}
+.lbtn:hover{opacity:0.85}
+.ltoggle{margin-top:18px;font-size:13px;color:var(--tm)}
+.ltoggle a{color:var(--vl);cursor:pointer}
 
-  /* ── APP ── */
-  #app-screen { display: none; }
-  .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+/* ── APP ── */
+#app-screen{display:none}
+.app{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:0 20px 100px}
 
-  header {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:32px 0 40px; border-bottom:0.5px solid var(--glass-border); margin-bottom:40px;
-  }
-  .logo { display:flex; align-items:center; gap:12px; }
-  .logo-icon { width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#7C3AED,#4C1D95);display:flex;align-items:center;justify-content:center;font-size:18px; }
-  .logo-name { font-family:'Syne',sans-serif; font-weight:800; font-size:22px; letter-spacing:-0.5px; }
-  .logo-name span { color:var(--violet-light); }
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:24px 0 28px;border-bottom:0.5px solid var(--glass-border);margin-bottom:28px;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#4C1D95);display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px}
+.logo-name span{color:var(--vl)}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.user-pill{display:flex;align-items:center;gap:7px;background:var(--glass);border:0.5px solid var(--glass-border);border-radius:30px;padding:5px 12px 5px 6px}
+.u-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#4C1D95);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.u-email{font-size:12px;color:var(--tm);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-logout{background:transparent;border:0.5px solid var(--glass-border);color:var(--td);padding:6px 11px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap}
+.btn-logout:hover{color:var(--red);border-color:rgba(248,113,113,0.4)}
 
-  .header-right { display:flex; align-items:center; gap:12px; }
-  .user-pill {
-    display:flex; align-items:center; gap:8px; background:var(--glass);
-    border:0.5px solid var(--glass-border); border-radius:30px; padding:6px 14px 6px 8px;
-  }
-  .user-avatar {
-    width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#4C1D95);
-    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
-  }
-  .user-email { font-size:13px; color:var(--text-muted); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .btn-logout {
-    background:transparent; border:0.5px solid var(--glass-border); color:var(--text-dim);
-    padding:6px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif;
-    transition: all 0.2s;
-  }
-  .btn-logout:hover { color:var(--red); border-color:rgba(248,113,113,0.4); }
+/* ── BOTTOM NAV (mobile) ── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(8,8,16,0.95);border-top:0.5px solid var(--glass-border);backdrop-filter:blur(20px);padding:8px 0 env(safe-area-inset-bottom,8px)}
+.bottom-nav-inner{display:flex;justify-content:space-around;max-width:500px;margin:0 auto}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--td);cursor:pointer;padding:6px 16px;border-radius:12px;transition:color 0.2s;font-family:'DM Sans',sans-serif}
+.bnav-btn.active{color:var(--vl)}
+.bnav-icon{font-size:20px}
+.bnav-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
 
-  nav { display:flex; gap:4px; background:var(--surface); border-radius:var(--radius-sm); padding:4px; border:0.5px solid var(--glass-border); }
-  .tab { padding:8px 20px; border-radius:8px; border:none; background:transparent; color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.2s; }
-  .tab:hover { color:var(--text); background:var(--surface-hover); }
-  .tab.active { background:linear-gradient(135deg,#6D28D9,#4C1D95); color:#fff; }
+/* ── TOP NAV (desktop) ── */
+nav.top-nav{display:flex;gap:4px;background:var(--surface);border-radius:var(--rs);padding:4px;border:0.5px solid var(--glass-border)}
+.tab{padding:7px 16px;border-radius:8px;border:none;background:transparent;color:var(--tm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.tab:hover{color:var(--text);background:var(--surface-hover)}
+.tab.active{background:linear-gradient(135deg,#6D28D9,#4C1D95);color:#fff}
 
-  .page { display:none; animation:fadeIn 0.3s ease; }
-  .page.active { display:block; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+/* ── PAGES ── */
+.page{display:none;animation:fadeIn 0.25s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
-  .section-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:16px; }
-  .glass { background:var(--glass); border:0.5px solid var(--glass-border); border-radius:var(--radius); backdrop-filter:blur(12px); }
+/* ── UTILS ── */
+.section-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:600;color:var(--td);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px}
+.glass{background:var(--glass);border:0.5px solid var(--glass-border);border-radius:var(--r);backdrop-filter:blur(12px)}
+.mt{margin-top:28px}
 
-  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:32px; }
-  .stat-card { background:var(--glass); border:0.5px solid var(--glass-border); border-radius:var(--radius-sm); padding:20px; backdrop-filter:blur(12px); }
-  .stat-label { font-size:12px; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }
-  .stat-value { font-family:'Syne',sans-serif; font-size:28px; font-weight:700; }
-  .stat-value.green{color:var(--green)} .stat-value.yellow{color:var(--yellow)} .stat-value.red{color:var(--red)} .stat-value.violet{color:var(--violet-light)}
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:28px}
+.stat-card{background:var(--glass);border:0.5px solid var(--glass-border);border-radius:var(--rs);padding:16px;backdrop-filter:blur(12px)}
+.stat-label{font-size:11px;color:var(--tm);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px}
+.stat-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:700}
+.sv-green{color:var(--green)}.sv-yellow{color:var(--yellow)}.sv-red{color:var(--red)}.sv-violet{color:var(--vl)}.sv-orange{color:var(--orange)}
 
-  .add-form { background:var(--glass); border:0.5px solid var(--glass-border); border-radius:var(--radius); padding:24px; margin-bottom:32px; backdrop-filter:blur(12px); }
-  .form-grid { display:grid; grid-template-columns:2fr 1.5fr 1fr 1fr auto; gap:12px; align-items:end; }
-  .form-group { display:flex; flex-direction:column; gap:6px; }
-  .form-label { font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; }
-  .form-input, .form-select { background:rgba(255,255,255,0.06); border:0.5px solid var(--glass-border); border-radius:var(--radius-sm); padding:10px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
-  .form-input:focus,.form-select:focus { border-color:var(--violet); }
-  .form-input::placeholder { color:var(--text-dim); }
-  .form-select option { background:#1a1a2e; color:var(--text); }
-  .credits-display { font-size:12px; color:var(--violet-light); margin-top:4px; height:16px; }
+/* ── RENOVAR HOY BANNER ── */
+.renovar-banner{background:linear-gradient(135deg,rgba(251,146,60,0.15),rgba(248,113,113,0.1));border:0.5px solid rgba(251,146,60,0.35);border-radius:var(--r);padding:20px 24px;margin-bottom:28px}
+.renovar-banner-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--orange);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.renovar-banner-sub{font-size:13px;color:var(--tm);margin-bottom:16px}
+.renovar-list{display:flex;flex-direction:column;gap:8px}
+.renovar-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;flex-wrap:wrap}
+.renovar-name{font-size:14px;font-weight:500;flex:1;min-width:100px}
+.renovar-info{font-size:12px;color:var(--tm)}
+.renovar-days{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
 
-  .btn-primary { background:linear-gradient(135deg,#7C3AED,#5B21B6); border:none; color:#fff; padding:10px 20px; border-radius:var(--radius-sm); font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:opacity 0.2s,transform 0.1s; white-space:nowrap; }
-  .btn-primary:hover { opacity:0.85; }
-  .btn-primary:active { transform:scale(0.98); }
-  .btn-icon { background:transparent; border:0.5px solid var(--glass-border); color:var(--text-muted); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:14px; transition:all 0.2s; }
-  .btn-icon:hover { color:var(--red); border-color:rgba(248,113,113,0.4); background:var(--red-dim); }
-  .btn-renew { background:transparent; border:0.5px solid rgba(52,211,153,0.3); color:var(--green); padding:5px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-family:'DM Sans',sans-serif; transition:all 0.2s; white-space:nowrap; }
-  .btn-renew:hover { background:var(--green-dim); }
+/* ── FORM ── */
+.add-form{background:var(--glass);border:0.5px solid var(--glass-border);border-radius:var(--r);padding:20px;margin-bottom:28px;backdrop-filter:blur(12px)}
+.form-grid{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr auto;gap:10px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;color:var(--tm);text-transform:uppercase;letter-spacing:0.8px}
+.form-input,.form-select{background:rgba(255,255,255,0.06);border:0.5px solid var(--glass-border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;width:100%;-webkit-appearance:none}
+.form-input:focus,.form-select:focus{border-color:var(--violet)}
+.form-input::placeholder{color:var(--td)}
+.form-select option{background:#1a1a2e;color:var(--text)}
+.credits-hint{font-size:11px;color:var(--vl);margin-top:3px;height:15px}
 
-  .table-wrap { overflow-x:auto; border-radius:var(--radius); }
-  table { width:100%; border-collapse:collapse; }
-  thead tr { border-bottom:0.5px solid var(--glass-border); }
-  th { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; padding:12px 16px; text-align:left; font-weight:500; }
-  td { padding:14px 16px; font-size:14px; border-bottom:0.5px solid rgba(255,255,255,0.04); vertical-align:middle; }
-  tbody tr:last-child td { border-bottom:none; }
-  tbody tr:hover td { background:var(--surface-hover); }
+/* ── BUTTONS ── */
+.btn-primary{background:linear-gradient(135deg,#7C3AED,#5B21B6);border:none;color:#fff;padding:10px 18px;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;width:100%}
+.btn-primary:hover{opacity:0.85}
+.btn-icon{background:transparent;border:0.5px solid var(--glass-border);color:var(--tm);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px;transition:all 0.2s}
+.btn-icon:hover{color:var(--red);border-color:rgba(248,113,113,0.4);background:var(--rdim)}
+.btn-renew{background:var(--gdim);border:0.5px solid rgba(52,211,153,0.35);color:var(--green);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap;font-weight:500}
+.btn-renew:hover{background:rgba(52,211,153,0.25)}
+.btn-renew-orange{background:var(--odim);border:0.5px solid rgba(251,146,60,0.35);color:var(--orange);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;transition:all 0.2s;white-space:nowrap;font-weight:500}
+.btn-renew-orange:hover{background:rgba(251,146,60,0.25)}
 
-  .badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:500; }
-  .badge-green { background:var(--green-dim); color:var(--green); border:0.5px solid rgba(52,211,153,0.2); }
-  .badge-yellow { background:var(--yellow-dim); color:var(--yellow); border:0.5px solid rgba(251,191,36,0.2); }
-  .badge-red { background:var(--red-dim); color:var(--red); border:0.5px solid rgba(248,113,113,0.2); }
-  .badge-dot { width:6px; height:6px; border-radius:50%; }
-  .badge-green .badge-dot{background:var(--green)} .badge-yellow .badge-dot{background:var(--yellow)}
-  .badge-red .badge-dot { background:var(--red); box-shadow:0 0 6px var(--red); animation:pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border-radius:var(--r);-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead tr{border-bottom:0.5px solid var(--glass-border)}
+th{font-size:10px;color:var(--td);text-transform:uppercase;letter-spacing:1px;padding:11px 14px;text-align:left;font-weight:500;white-space:nowrap}
+td{padding:12px 14px;font-size:13px;border-bottom:0.5px solid rgba(255,255,255,0.04);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface-hover)}
+tbody tr.row-orange td{background:rgba(251,146,60,0.04)}
+tbody tr.row-red td{background:rgba(248,113,113,0.04)}
 
-  .days-pill { font-family:'Syne',sans-serif; font-weight:700; font-size:14px; }
-  .days-green{color:var(--green)} .days-yellow{color:var(--yellow)} .days-red{color:var(--red)}
-  .credits-dots { display:flex; gap:4px; }
-  .credit-dot { width:8px; height:8px; border-radius:50%; background:var(--violet-light); opacity:0.9; }
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.bg{background:var(--gdim);color:var(--green);border:0.5px solid rgba(52,211,153,0.2)}
+.by{background:var(--ydim);color:var(--yellow);border:0.5px solid rgba(251,191,36,0.2)}
+.br{background:var(--rdim);color:var(--red);border:0.5px solid rgba(248,113,113,0.2)}
+.bo{background:var(--odim);color:var(--orange);border:0.5px solid rgba(251,146,60,0.2)}
+.bdot{width:5px;height:5px;border-radius:50%}
+.bg .bdot{background:var(--green)}.by .bdot{background:var(--yellow)}
+.br .bdot{background:var(--red);box-shadow:0 0 5px var(--red);animation:pulse 1.5s infinite}
+.bo .bdot{background:var(--orange);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
-  .week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:10px; margin-bottom:32px; }
-  .day-col { background:var(--glass); border:0.5px solid var(--glass-border); border-radius:var(--radius-sm); padding:14px 10px; backdrop-filter:blur(12px); min-height:120px; }
-  .day-col.today { border-color:var(--violet); background:var(--violet-dim); }
-  .day-name { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
-  .day-num { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; margin-bottom:10px; }
-  .day-col.today .day-num { color:var(--violet-light); }
-  .day-client { font-size:11px; color:var(--text); background:var(--surface); border-radius:6px; padding:4px 7px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .day-client.urgent { background:var(--red-dim); color:var(--red); }
-  .day-client.done { background:var(--green-dim); color:var(--green); opacity:0.7; text-decoration:line-through; }
+.dp{font-family:'Syne',sans-serif;font-weight:700;font-size:13px}
+.dg{color:var(--green)}.dy{color:var(--yellow)}.dr{color:var(--red)}.do{color:var(--orange)}
 
-  .alert-row { display:flex; align-items:center; gap:16px; padding:14px 20px; border-bottom:0.5px solid rgba(255,255,255,0.04); }
-  .alert-row:last-child { border-bottom:none; }
-  .alert-name { flex:1; font-size:14px; }
-  .alert-date { font-size:13px; color:var(--text-muted); }
+/* ── MOBILE CARDS (clients) ── */
+.client-cards{display:none;flex-direction:column;gap:10px}
+.client-card{background:var(--glass);border:0.5px solid var(--glass-border);border-radius:var(--rs);padding:14px;backdrop-filter:blur(12px)}
+.client-card.card-orange{border-color:rgba(251,146,60,0.35);background:rgba(251,146,60,0.05)}
+.client-card.card-red{border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.04)}
+.cc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.cc-name{font-size:15px;font-weight:500}
+.cc-body{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.cc-item{font-size:12px;color:var(--tm)}
+.cc-item span{color:var(--text);font-weight:500}
+.cc-actions{display:flex;gap:8px;align-items:center}
 
-  .empty { text-align:center; padding:60px 20px; color:var(--text-dim); font-size:15px; }
-  .empty-icon { font-size:36px; margin-bottom:12px; opacity:0.3; }
+/* ── ALERT ROWS ── */
+.alert-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:0.5px solid rgba(255,255,255,0.04);flex-wrap:wrap}
+.alert-row:last-child{border-bottom:none}
+.alert-name{flex:1;font-size:14px;min-width:100px}
+.alert-date{font-size:12px;color:var(--tm);white-space:nowrap}
 
-  .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1230; border:0.5px solid var(--violet); border-radius:30px; padding:12px 24px; font-size:14px; color:var(--text); opacity:0; transition:all 0.3s; pointer-events:none; z-index:100; }
-  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+/* ── WEEK GRID ── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:28px}
+.day-col{background:var(--glass);border:0.5px solid var(--glass-border);border-radius:var(--rs);padding:12px 8px;backdrop-filter:blur(12px);min-height:100px}
+.day-col.today{border-color:var(--violet);background:var(--vdim)}
+.day-name{font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px}
+.day-num{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px}
+.day-col.today .day-num{color:var(--vl)}
+.day-chip{font-size:10px;color:var(--text);background:var(--surface);border-radius:5px;padding:3px 6px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-chip.urgent{background:var(--rdim);color:var(--red)}
+.day-chip.window{background:var(--odim);color:var(--orange)}
 
-  /* Loading spinner */
-  .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:8px; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+/* ── CALENDAR ── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.cal-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.btn-week{background:var(--glass);border:0.5px solid var(--glass-border);color:var(--tm);padding:7px 14px;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.btn-week:hover{color:var(--text);border-color:var(--violet)}
+.btn-week.active-today{color:var(--vl);border-color:var(--vglow)}
+.cal-label{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.cal-day{background:var(--glass);border:0.5px solid var(--glass-border);border-radius:var(--rs);padding:12px 10px;min-height:140px;backdrop-filter:blur(12px);display:flex;flex-direction:column;gap:5px}
+.cal-day.is-today{border-color:var(--violet);background:var(--vdim)}
+.cal-day.has-c{border-color:rgba(139,92,246,0.25)}
+.cal-dh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px}
+.cal-dname{font-size:9px;color:var(--td);text-transform:uppercase;letter-spacing:1px}
+.cal-dnum{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;line-height:1}
+.is-today .cal-dnum{color:var(--vl)}
+.cal-card{background:rgba(255,255,255,0.05);border-radius:7px;padding:6px 8px;border-left:2px solid var(--violet)}
+.cal-card.w-orange{border-left-color:var(--orange);background:var(--odim)}
+.cal-card.w-red{border-left-color:var(--red);background:var(--rdim)}
+.cal-cname{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-cmoney{font-size:10px;color:var(--vl);margin-top:1px}
+.w-orange .cal-cmoney{color:var(--orange)}.w-red .cal-cmoney{color:var(--red)}
+.cal-empty-day{font-size:10px;color:var(--td);text-align:center;padding-top:16px}
+.cal-badge{font-size:9px;font-weight:600;background:var(--vdim);color:var(--vl);border-radius:8px;padding:1px 6px}
 
-  /* Calendar */
-  .btn-week-nav { background:var(--glass); border:0.5px solid var(--glass-border); color:var(--text-muted); padding:8px 16px; border-radius:var(--radius-sm); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; transition:all 0.2s; }
-  .btn-week-nav:hover { color:var(--text); background:var(--surface-hover); border-color:var(--violet); }
-  .btn-week-nav.today-btn { color:var(--violet-light); border-color:rgba(139,92,246,0.4); }
-  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:10px; }
-  .cal-day { background:var(--glass); border:0.5px solid var(--glass-border); border-radius:var(--radius-sm); padding:14px 12px; min-height:160px; backdrop-filter:blur(12px); display:flex; flex-direction:column; gap:6px; transition:border-color 0.2s; }
-  .cal-day.is-today { border-color:var(--violet); background:var(--violet-dim); }
-  .cal-day.has-clients { border-color:rgba(139,92,246,0.3); }
-  .cal-day-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px; }
-  .cal-day-name { font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
-  .cal-day-num { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; line-height:1; }
-  .is-today .cal-day-num { color:var(--violet-light); }
-  .cal-client-card { background:rgba(255,255,255,0.05); border-radius:8px; padding:7px 10px; border-left:2px solid var(--violet); }
-  .cal-client-card.urgent { border-left-color:var(--red); background:var(--red-dim); }
-  .cal-client-card.done-card { border-left-color:var(--green); background:var(--green-dim); opacity:0.75; }
-  .cal-client-name { font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .cal-client-money { font-size:11px; color:var(--violet-light); margin-top:2px; }
-  .urgent .cal-client-money{color:var(--red)} .done-card .cal-client-money{color:var(--green)}
-  .cal-empty { font-size:11px; color:var(--text-dim); text-align:center; padding-top:20px; }
-  .cal-count-badge { font-size:10px; font-weight:600; background:var(--violet-dim); color:var(--violet-light); border-radius:10px; padding:1px 7px; }
+/* ── EMPTY ── */
+.empty{text-align:center;padding:50px 20px;color:var(--td);font-size:14px}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:0.3}
 
-  @media (max-width:700px) {
-    .form-grid { grid-template-columns:1fr 1fr; }
-    .week-grid,.cal-grid { grid-template-columns:repeat(4,1fr); }
-    .header-right { gap:8px; }
-    .user-email { display:none; }
-  }
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(10px);background:#14102a;border:0.5px solid var(--violet);border-radius:30px;padding:11px 22px;font-size:13px;color:var(--text);opacity:0;transition:all 0.25s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── SPINNER ── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(max-width:768px){
+  .app{padding:0 14px 90px}
+  header{padding:16px 0 20px;margin-bottom:20px}
+  .u-email{display:none}
+  nav.top-nav{display:none}
+  .bottom-nav{display:block}
+
+  /* form → 2 cols on mobile */
+  .form-grid{grid-template-columns:1fr 1fr}
+  .form-grid .form-group:first-child{grid-column:1/-1}
+  .form-grid .btn-primary{grid-column:1/-1;margin-top:4px}
+
+  /* hide table, show cards */
+  .table-wrap table{display:none}
+  .client-cards{display:flex}
+
+  /* week/cal grids → 4 cols */
+  .week-grid{grid-template-columns:repeat(4,1fr)}
+  .cal-grid{grid-template-columns:repeat(4,1fr)}
+
+  /* alert rows → stack */
+  .alert-row{gap:8px}
+  .alert-date{display:none}
+
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-value{font-size:22px}
+
+  .renovar-row{gap:8px}
+  .cal-label{font-size:16px}
+}
+
+@media(max-width:400px){
+  .week-grid{grid-template-columns:repeat(3,1fr)}
+  .cal-grid{grid-template-columns:repeat(3,1fr)}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 <body>
 
 <div class="bg-orbs">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
+  <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
 </div>
 
-<!-- ══ LOGIN ══ -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">Renova<span>.</span></div>
     <div class="login-sub">Control de renovaciones de clientes</div>
-    <div class="login-mode-label" id="login-mode-label">Iniciar sesión</div>
-    <div class="login-error" id="login-error"></div>
-    <label class="login-label">Email</label>
-    <input class="login-input" id="inp-email" type="email" placeholder="tu@email.com" />
-    <label class="login-label">Contraseña</label>
-    <input class="login-input" id="inp-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()" />
-    <button class="login-btn" id="login-btn" onclick="doAuth()">Entrar</button>
-    <div class="login-toggle" id="login-toggle">
-      ¿No tenés cuenta? <a onclick="toggleMode()">Registrarse</a>
-    </div>
+    <div class="login-mode" id="lmode">Iniciar sesión</div>
+    <div class="login-err" id="lerr"></div>
+    <label class="lbl">Email</label>
+    <input class="linp" id="inp-email" type="email" placeholder="tu@email.com" autocomplete="email" />
+    <label class="lbl">Contraseña</label>
+    <input class="linp" id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth()" />
+    <button class="lbtn" id="lbtn" onclick="doAuth()">Entrar</button>
+    <div class="ltoggle" id="ltoggle">¿No tenés cuenta? <a onclick="toggleMode()">Registrarse</a></div>
   </div>
 </div>
 
-<!-- ══ APP ══ -->
+<!-- APP -->
 <div id="app-screen">
   <div class="app">
     <header>
@@ -241,10 +289,10 @@
       </div>
       <div class="header-right">
         <div class="user-pill">
-          <div class="user-avatar" id="user-avatar">?</div>
-          <span class="user-email" id="user-email-display"></span>
+          <div class="u-avatar" id="u-avatar">?</div>
+          <span class="u-email" id="u-email"></span>
         </div>
-        <nav>
+        <nav class="top-nav">
           <button class="tab active" onclick="showPage('clientes')">Clientes</button>
           <button class="tab" onclick="showPage('dashboard')">Dashboard</button>
           <button class="tab" onclick="showPage('calendario')">Calendario</button>
@@ -253,81 +301,95 @@
       </div>
     </header>
 
-    <!-- CLIENTES -->
+    <!-- PAGE: CLIENTES -->
     <div id="page-clientes" class="page active">
-      <div class="stats-grid" id="stats-grid"></div>
+      <div class="stats-grid" id="stats-clientes"></div>
+
+      <!-- BANNER RENOVAR HOY -->
+      <div class="renovar-banner" id="renovar-banner" style="display:none">
+        <div class="renovar-banner-title">🔔 Ventana de renovación activa</div>
+        <div class="renovar-banner-sub" id="renovar-banner-sub"></div>
+        <div class="renovar-list" id="renovar-list"></div>
+      </div>
+
       <div class="add-form">
-        <div class="section-title" style="margin-bottom:18px">Agregar cliente</div>
+        <div class="section-title" style="margin-bottom:16px">Agregar cliente</div>
         <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label">Nombre del cliente</label>
-            <input class="form-input" id="inp-name" placeholder="Ej: Juan García" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Fecha de contratación</label>
-            <input class="form-input" id="inp-date" type="date" />
-          </div>
+          <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="inp-name" placeholder="Ej: Juan García" /></div>
+          <div class="form-group"><label class="form-label">Fecha contratación</label><input class="form-input" id="inp-date" type="date" /></div>
           <div class="form-group">
             <label class="form-label">Créditos</label>
-            <select class="form-select" id="inp-credits" onchange="updateCreditsHint()">
-              <option value="1">1 crédito</option>
-              <option value="2">2 créditos</option>
-              <option value="3">3 créditos</option>
+            <select class="form-select" id="inp-credits" onchange="updateHint()">
+              <option value="1">1 crédito</option><option value="2">2 créditos</option><option value="3">3 créditos</option>
             </select>
-            <div class="credits-display" id="credits-hint">30 días · $10.000</div>
+            <div class="credits-hint" id="chint">30 días · $10.000</div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Precio por crédito</label>
-            <input class="form-input" id="inp-price" type="number" placeholder="10000" value="10000" />
-          </div>
-          <button class="btn-primary" onclick="addClient()">+ Agregar</button>
+          <div class="form-group"><label class="form-label">$ por crédito</label><input class="form-input" id="inp-price" type="number" value="10000" /></div>
+          <div class="form-group"><label class="form-label" style="opacity:0">.</label><button class="btn-primary" onclick="addClient()">+ Agregar</button></div>
         </div>
       </div>
+
       <div class="section-title">Todos los clientes</div>
+
+      <!-- TABLE (desktop) -->
       <div class="glass table-wrap">
         <table>
           <thead><tr>
             <th>Cliente</th><th>Contratación</th><th>Créditos</th>
-            <th>Vence</th><th>Días restantes</th><th>Estado</th><th>Monto</th><th></th>
+            <th>Vence</th><th>Días</th><th>Estado</th><th>Monto</th><th></th>
           </tr></thead>
           <tbody id="clients-tbody"></tbody>
         </table>
-        <div class="empty" id="empty-state" style="display:none">
-          <div class="empty-icon">👥</div>Todavía no hay clientes. ¡Agregá el primero arriba!
-        </div>
+        <div class="empty" id="empty-table" style="display:none"><div class="empty-icon">👥</div>Sin clientes todavía</div>
       </div>
+
+      <!-- CARDS (mobile) -->
+      <div class="client-cards" id="client-cards"></div>
     </div>
 
-    <!-- DASHBOARD -->
+    <!-- PAGE: DASHBOARD -->
     <div id="page-dashboard" class="page">
-      <div class="stats-grid" id="dash-stats"></div>
+      <div class="stats-grid" id="stats-dash"></div>
       <div class="section-title">Esta semana</div>
       <div class="week-grid" id="week-grid"></div>
-      <div class="section-title">⚠️ Urgente — vencen en 3 días o menos</div>
+      <div class="section-title">🔔 Renovar ahora — ventana activa (≤3 días)</div>
       <div class="glass" id="urgent-list"></div>
-      <div style="margin-top:24px" class="section-title">Próximos 30 días</div>
+      <div class="mt section-title">Próximos 30 días</div>
       <div class="glass" id="month-list"></div>
     </div>
 
-    <!-- CALENDARIO -->
+    <!-- PAGE: CALENDARIO -->
     <div id="page-calendario" class="page">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
+      <div class="cal-header">
         <div>
-          <div class="section-title" style="margin-bottom:4px">Calendario de renovaciones</div>
-          <div id="cal-week-label" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700"></div>
+          <div class="section-title" style="margin-bottom:4px">Calendario</div>
+          <div class="cal-label" id="cal-label"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <button class="btn-week-nav" onclick="changeWeek(-1)">← Semana ant.</button>
-          <button class="btn-week-nav today-btn" onclick="resetWeek()">Hoy</button>
-          <button class="btn-week-nav" onclick="changeWeek(1)">Semana sig. →</button>
+        <div class="cal-nav">
+          <button class="btn-week" onclick="changeWeek(-1)">← Ant.</button>
+          <button class="btn-week active-today" onclick="resetWeek()">Hoy</button>
+          <button class="btn-week" onclick="changeWeek(1)">Sig. →</button>
         </div>
       </div>
-      <div class="stats-grid" id="cal-stats"></div>
+      <div class="stats-grid" id="stats-cal"></div>
       <div id="cal-grid" class="cal-grid"></div>
-      <div style="margin-top:28px">
-        <div class="section-title">Clientes que renuevan esta semana</div>
-        <div class="glass" id="cal-list"></div>
-      </div>
+      <div class="mt section-title">Detalle de la semana</div>
+      <div class="glass" id="cal-list"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bnav-btn active" onclick="showPage('clientes')" id="bnav-clientes">
+        <span class="bnav-icon">👥</span><span class="bnav-label">Clientes</span>
+      </button>
+      <button class="bnav-btn" onclick="showPage('dashboard')" id="bnav-dashboard">
+        <span class="bnav-icon">📊</span><span class="bnav-label">Dashboard</span>
+      </button>
+      <button class="bnav-btn" onclick="showPage('calendario')" id="bnav-calendario">
+        <span class="bnav-icon">🗓</span><span class="bnav-label">Calendario</span>
+      </button>
     </div>
   </div>
 </div>
@@ -335,360 +397,361 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ══ SUPABASE CONFIG ══════════════════════════════════════════════════════════
-// Supabase es tu base de datos en la nube. Esta URL y key son como la
-// "dirección" y "llave de entrada" a tu proyecto. La anon key es segura
-// para poner en el frontend porque Supabase usa Row Level Security para
-// proteger los datos.
-const SUPA_URL = 'https://hcmdasohjfdgzmcnhmqj.supabase.co';
-const SUPA_KEY = 'sb_publishable_bJ9Djko2dfV_52E-WiAcnw_5ckpMqch';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const SUPA_URL='https://hcmdasohjfdgzmcnhmqj.supabase.co';
+const SUPA_KEY='sb_publishable_bJ9Djko2dfV_52E-WiAcnw_5ckpMqch';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-// ══ AUTH STATE ═══════════════════════════════════════════════════════════════
-let currentUser = null;
-let isRegisterMode = false;
-let clientsCache = []; // cache local para no pedir a Supabase todo el tiempo
+let currentUser=null, cache=[], isReg=false;
 
-function toggleMode() {
-  isRegisterMode = !isRegisterMode;
-  document.getElementById('login-mode-label').textContent = isRegisterMode ? 'Crear cuenta' : 'Iniciar sesión';
-  document.getElementById('login-btn').textContent = isRegisterMode ? 'Registrarse' : 'Entrar';
-  document.getElementById('login-toggle').innerHTML = isRegisterMode
-    ? '¿Ya tenés cuenta? <a onclick="toggleMode()">Iniciar sesión</a>'
-    : '¿No tenés cuenta? <a onclick="toggleMode()">Registrarse</a>';
-  document.getElementById('login-error').textContent = '';
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function toggleMode(){
+  isReg=!isReg;
+  document.getElementById('lmode').textContent=isReg?'Crear cuenta':'Iniciar sesión';
+  document.getElementById('lbtn').textContent=isReg?'Registrarse':'Entrar';
+  document.getElementById('ltoggle').innerHTML=isReg?'¿Ya tenés cuenta? <a onclick="toggleMode()">Iniciar sesión</a>':'¿No tenés cuenta? <a onclick="toggleMode()">Registrarse</a>';
+  document.getElementById('lerr').textContent='';
 }
-
-async function doAuth() {
-  const email = document.getElementById('inp-email').value.trim();
-  const pass = document.getElementById('inp-pass').value;
-  const errEl = document.getElementById('login-error');
-  const btn = document.getElementById('login-btn');
-  if (!email || !pass) { errEl.textContent = 'Completá email y contraseña'; return; }
-
-  btn.innerHTML = '<span class="spinner"></span>' + (isRegisterMode ? 'Creando cuenta...' : 'Entrando...');
-  btn.disabled = true;
-  errEl.textContent = '';
-
-  // sb.auth.signUp / signInWithPassword son métodos de Supabase para
-  // manejar usuarios. Supabase se encarga de hashear contraseñas, tokens, etc.
-  const { data, error } = isRegisterMode
-    ? await sb.auth.signUp({ email, password: pass })
-    : await sb.auth.signInWithPassword({ email, password: pass });
-
-  btn.disabled = false;
-  btn.innerHTML = isRegisterMode ? 'Registrarse' : 'Entrar';
-
-  if (error) { errEl.textContent = translateAuthError(error.message); return; }
-
-  if (isRegisterMode && data.user && !data.session) {
-    errEl.style.color = 'var(--green)';
-    errEl.textContent = '✅ Revisá tu email para confirmar la cuenta';
-    return;
-  }
-  if (data.user) onLogin(data.user);
+async function doAuth(){
+  const email=document.getElementById('inp-email').value.trim();
+  const pass=document.getElementById('inp-pass').value;
+  const errEl=document.getElementById('lerr');
+  const btn=document.getElementById('lbtn');
+  if(!email||!pass){errEl.textContent='Completá email y contraseña';return}
+  btn.innerHTML='<span class="spinner"></span>'+(isReg?'Creando...':'Entrando...');
+  btn.disabled=true; errEl.textContent='';
+  const{data,error}=isReg?await sb.auth.signUp({email,password:pass}):await sb.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false; btn.textContent=isReg?'Registrarse':'Entrar';
+  if(error){errEl.textContent=xlateErr(error.message);return}
+  if(isReg&&data.user&&!data.session){errEl.style.color='var(--green)';errEl.textContent='✅ Revisá tu email para confirmar';return}
+  if(data.user)onLogin(data.user);
 }
-
-function translateAuthError(msg) {
-  if (msg.includes('Invalid login')) return 'Email o contraseña incorrectos';
-  if (msg.includes('already registered')) return 'Este email ya tiene cuenta';
-  if (msg.includes('Password should')) return 'La contraseña debe tener al menos 6 caracteres';
-  if (msg.includes('valid email')) return 'Ingresá un email válido';
-  return msg;
+function xlateErr(m){
+  if(m.includes('Invalid login'))return 'Email o contraseña incorrectos';
+  if(m.includes('already registered'))return 'Este email ya tiene cuenta';
+  if(m.includes('Password should'))return 'La contraseña debe tener al menos 6 caracteres';
+  return m;
 }
-
-function onLogin(user) {
-  currentUser = user;
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display = 'block';
-  const initials = user.email.slice(0,2).toUpperCase();
-  document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-email-display').textContent = user.email;
+function onLogin(user){
+  currentUser=user;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  const ini=user.email.slice(0,2).toUpperCase();
+  document.getElementById('u-avatar').textContent=ini;
+  document.getElementById('u-email').textContent=user.email;
   loadClients();
 }
-
-async function doLogout() {
-  await sb.auth.signOut();
-  currentUser = null;
-  clientsCache = [];
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app-screen').style.display = 'none';
-  document.getElementById('inp-pass').value = '';
-  document.getElementById('login-error').textContent = '';
-  document.getElementById('login-error').style.color = 'var(--red)';
+async function doLogout(){
+  await sb.auth.signOut(); currentUser=null; cache=[];
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('inp-pass').value='';
+  document.getElementById('lerr').textContent='';
+  document.getElementById('lerr').style.color='var(--red)';
 }
+sb.auth.onAuthStateChange((_,session)=>{if(session?.user)onLogin(session.user)});
 
-// Supabase mantiene la sesión automáticamente en localStorage.
-// onAuthStateChange escucha si el usuario ya estaba logueado
-// y restaura la sesión sin que tenga que volver a escribir la contraseña.
-sb.auth.onAuthStateChange((event, session) => {
-  if (session?.user) onLogin(session.user);
-});
-
-// ══ SUPABASE CRUD ════════════════════════════════════════════════════════════
-// Estas funciones hablan con tu base de datos en la nube.
-// Cada vez que hacés algo (agregar, renovar, borrar), se guarda en Supabase
-// y está disponible desde cualquier dispositivo.
-
-async function loadClients() {
-  // .from('clients') = tabla, .select('*') = traer todas las columnas
-  // .eq('user_id', ...) filtra solo los clientes de tu usuario
-  showToast('⏳ Cargando clientes...');
-  const { data, error } = await sb.from('clients').select('*').order('renewal', { ascending: true });
-  if (error) { showToast('❌ Error al cargar: ' + error.message); return; }
-  // Convertimos snake_case de la DB a camelCase para el JS
-  clientsCache = (data || []).map(dbToClient);
+// ── SUPABASE CRUD ─────────────────────────────────────────────────────────────
+async function loadClients(){
+  const{data,error}=await sb.from('clients').select('*').order('renewal',{ascending:true});
+  if(error){showToast('❌ Error al cargar');return}
+  cache=(data||[]).map(r=>({id:r.id,name:r.name,contractDate:r.contract_date,credits:r.credits,price:r.price,renewal:r.renewal,history:r.history||[]}));
   renderAll();
-  showToast('✅ Clientes cargados');
+}
+function toDb(c){return{id:c.id,name:c.name,contract_date:c.contractDate,credits:c.credits,price:c.price,renewal:c.renewal,history:c.history||[],user_id:currentUser?.id}}
+async function dbIns(c){const{error}=await sb.from('clients').insert([toDb(c)]);return!error}
+async function dbUpd(c){const{error}=await sb.from('clients').update(toDb(c)).eq('id',c.id);return!error}
+async function dbDel(id){const{error}=await sb.from('clients').delete().eq('id',id);return!error}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function today(){return new Date(new Date().toDateString())}
+function parseD(s){return new Date(s+'T00:00:00')}
+function fmtD(s){if(!s)return'—';return parseD(s).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}
+function fmtDShort(s){if(!s)return'—';return parseD(s).toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}
+function daysUntil(s){return Math.ceil((parseD(s)-today())/86400000)}
+function addDays(s,n){const d=parseD(s);d.setDate(d.getDate()+n);return d.toISOString().split('T')[0]}
+function fmtM(n){return'$'+n.toLocaleString('es-AR')}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function updateHint(){
+  const cr=parseInt(document.getElementById('inp-credits').value);
+  const pr=parseInt(document.getElementById('inp-price')?.value||10000);
+  document.getElementById('chint').textContent=`${cr*30} días · ${fmtM(cr*pr)}`;
+}
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
 }
 
-function dbToClient(r) {
-  return { id: r.id, name: r.name, contractDate: r.contract_date, credits: r.credits, price: r.price, renewal: r.renewal, history: r.history || [] };
+// Lógica de estado:
+// - "vencido": days < 0 → no renovó aún (pasó la fecha)
+// - "renovar": days >= 0 && days <= 3 → ventana de renovación activa (se puede cargar crédito)
+// - "próximo": days 4-14 → aviso amarillo
+// - "activo": days > 14 → verde, todo bien
+function getStatus(days){
+  if(days<0)return'vencido';
+  if(days<=3)return'renovar';
+  if(days<=14)return'proximo';
+  return'activo';
 }
-function clientToDb(c) {
-  return { id: c.id, name: c.name, contract_date: c.contractDate, credits: c.credits, price: c.price, renewal: c.renewal, history: c.history || [], user_id: currentUser?.id };
+function statusBadge(days){
+  const s=getStatus(days);
+  if(s==='vencido')return`<span class="badge br"><span class="bdot"></span>Vencido</span>`;
+  if(s==='renovar')return`<span class="badge bo"><span class="bdot"></span>Renovar ya</span>`;
+  if(s==='proximo')return`<span class="badge by"><span class="bdot"></span>Próximo</span>`;
+  return`<span class="badge bg"><span class="bdot"></span>Activo</span>`;
 }
+function daysLabel(days){
+  const s=getStatus(days);
+  if(s==='vencido')return`<span class="dp dr">${Math.abs(days)}d vencido</span>`;
+  if(s==='renovar')return`<span class="dp do">${days===0?'HOY':days+'d'}</span>`;
+  if(s==='proximo')return`<span class="dp dy">${days}d</span>`;
+  return`<span class="dp dg">${days}d</span>`;
+}
+function dotsDots(n){return`<div style="display:flex;gap:3px">${Array(n).fill('<div style="width:7px;height:7px;border-radius:50%;background:var(--vl);opacity:0.9"></div>').join('')}</div>`}
 
-async function dbInsert(client) {
-  const { error } = await sb.from('clients').insert([clientToDb(client)]);
-  if (error) { showToast('❌ Error al guardar: ' + error.message); return false; }
-  return true;
-}
-async function dbUpdate(client) {
-  const { error } = await sb.from('clients').update(clientToDb(client)).eq('id', client.id);
-  if (error) { showToast('❌ Error al actualizar: ' + error.message); return false; }
-  return true;
-}
-async function dbDelete(id) {
-  const { error } = await sb.from('clients').delete().eq('id', id);
-  if (error) { showToast('❌ Error al eliminar: ' + error.message); return false; }
-  return true;
-}
-
-// ══ HELPERS ══════════════════════════════════════════════════════════════════
-function today() { return new Date(new Date().toDateString()); }
-function parseDate(s) { return new Date(s + 'T00:00:00'); }
-function formatDate(s) {
-  if (!s) return '—';
-  return parseDate(s).toLocaleDateString('es-AR', { day:'2-digit', month:'short', year:'numeric' });
-}
-function daysUntil(dateStr) { return Math.ceil((parseDate(dateStr) - today()) / 86400000); }
-function addDays(dateStr, n) { const d = parseDate(dateStr); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
-function fmtMoney(n) { return '$' + n.toLocaleString('es-AR'); }
-function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
-function updateCreditsHint() {
-  const cr = parseInt(document.getElementById('inp-credits').value);
-  const price = parseInt(document.getElementById('inp-price')?.value || 10000);
-  document.getElementById('credits-hint').textContent = `${cr * 30} días · ${fmtMoney(cr * price)}`;
-}
-function showToast(msg) {
-  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-function statusBadge(days) {
-  if (days < 0) return `<span class="badge badge-red"><span class="badge-dot"></span>Vencido</span>`;
-  if (days <= 7) return `<span class="badge badge-red"><span class="badge-dot"></span>Urgente</span>`;
-  if (days <= 14) return `<span class="badge badge-yellow"><span class="badge-dot"></span>Próximo</span>`;
-  return `<span class="badge badge-green"><span class="badge-dot"></span>Activo</span>`;
-}
-function daysLabel(days) {
-  if (days < 0) return `<span class="days-pill days-red">${Math.abs(days)}d vencido</span>`;
-  if (days <= 7) return `<span class="days-pill days-red">${days}d</span>`;
-  if (days <= 14) return `<span class="days-pill days-yellow">${days}d</span>`;
-  return `<span class="days-pill days-green">${days}d</span>`;
-}
-function creditsDots(n) { return `<div class="credits-dots">${Array(n).fill('<div class="credit-dot"></div>').join('')}</div>`; }
-
-// ══ ACTIONS ══════════════════════════════════════════════════════════════════
-async function addClient() {
-  const name = document.getElementById('inp-name').value.trim();
-  const date = document.getElementById('inp-date').value;
-  const credits = parseInt(document.getElementById('inp-credits').value);
-  const price = parseInt(document.getElementById('inp-price').value || 10000);
-  if (!name || !date) { showToast('❌ Completá el nombre y la fecha'); return; }
-  const renewal = addDays(date, credits * 30);
-  const client = { id: generateId(), name, contractDate: date, credits, price, renewal, history: [] };
-  const ok = await dbInsert(client);
-  if (!ok) return;
-  clientsCache.push(client);
-  clientsCache.sort((a,b) => daysUntil(a.renewal) - daysUntil(b.renewal));
-  document.getElementById('inp-name').value = '';
-  showToast('✅ Cliente agregado y guardado en la nube');
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+async function addClient(){
+  const name=document.getElementById('inp-name').value.trim();
+  const date=document.getElementById('inp-date').value;
+  const credits=parseInt(document.getElementById('inp-credits').value);
+  const price=parseInt(document.getElementById('inp-price').value||10000);
+  if(!name||!date){showToast('❌ Completá nombre y fecha');return}
+  const renewal=addDays(date,credits*30);
+  const c={id:genId(),name,contractDate:date,credits,price,renewal,history:[]};
+  const ok=await dbIns(c);
+  if(!ok){showToast('❌ Error al guardar');return}
+  cache.push(c);
+  cache.sort((a,b)=>daysUntil(a.renewal)-daysUntil(b.renewal));
+  document.getElementById('inp-name').value='';
+  showToast('✅ Cliente guardado en la nube');
   renderAll();
 }
 
-async function renewClient(id) {
-  const c = clientsCache.find(x => x.id === id);
-  if (!c) return;
-  c.history = c.history || [];
+async function renewClient(id){
+  const c=cache.find(x=>x.id===id);
+  if(!c)return;
+  c.history=c.history||[];
   c.history.push(c.renewal);
-  const newStart = today().toISOString().split('T')[0];
-  c.contractDate = newStart;
-  c.renewal = addDays(newStart, c.credits * 30);
-  const ok = await dbUpdate(c);
-  if (!ok) return;
-  showToast(`✅ ${c.name} renovado hasta ${formatDate(c.renewal)}`);
+  // La renovación arranca desde la fecha de vencimiento original (no desde hoy)
+  // Si está vencido, arranca desde hoy
+  const days=daysUntil(c.renewal);
+  const baseDate=days<0?today().toISOString().split('T')[0]:c.renewal;
+  c.contractDate=baseDate;
+  c.renewal=addDays(baseDate,c.credits*30);
+  const ok=await dbUpd(c);
+  if(!ok){showToast('❌ Error al renovar');return}
+  showToast(`✅ ${c.name} renovado hasta ${fmtD(c.renewal)}`);
   renderAll();
 }
 
-async function deleteClient(id) {
-  const ok = await dbDelete(id);
-  if (!ok) return;
-  clientsCache = clientsCache.filter(x => x.id !== id);
+async function deleteClient(id){
+  const ok=await dbDel(id);
+  if(!ok){showToast('❌ Error al eliminar');return}
+  cache=cache.filter(x=>x.id!==id);
   showToast('🗑 Cliente eliminado');
   renderAll();
 }
 
-// ══ RENDER CLIENTES ═══════════════════════════════════════════════════════════
-function renderClients() {
-  const clients = clientsCache;
-  const tbody = document.getElementById('clients-tbody');
-  const empty = document.getElementById('empty-state');
-  if (clients.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; }
-  else {
-    empty.style.display = 'none';
-    tbody.innerHTML = clients.map(c => {
-      const days = daysUntil(c.renewal);
-      return `<tr>
+// ── RENDER CLIENTES ───────────────────────────────────────────────────────────
+function renderClients(){
+  const cl=cache;
+
+  // Stats
+  const active=cl.filter(c=>daysUntil(c.renewal)>14).length;
+  const proximo=cl.filter(c=>{const d=daysUntil(c.renewal);return d>3&&d<=14}).length;
+  const renovar=cl.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=3}).length;
+  const vencido=cl.filter(c=>daysUntil(c.renewal)<0).length;
+  const revenue=cl.reduce((s,c)=>s+c.credits*c.price,0);
+  document.getElementById('stats-clientes').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value sv-violet">${cl.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Activos</div><div class="stat-value sv-green">${active}</div></div>
+    <div class="stat-card"><div class="stat-label">Renovar ya 🔔</div><div class="stat-value sv-orange">${renovar}</div></div>
+    <div class="stat-card"><div class="stat-label">Próximos ≤14d</div><div class="stat-value sv-yellow">${proximo}</div></div>
+    <div class="stat-card"><div class="stat-label">Vencidos</div><div class="stat-value sv-red">${vencido}</div></div>
+    <div class="stat-card"><div class="stat-label">Ingresos activos</div><div class="stat-value sv-violet" style="font-size:18px">${fmtM(revenue)}</div></div>`;
+
+  // Banner renovar
+  const renovarClients=cl.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=3});
+  const banner=document.getElementById('renovar-banner');
+  if(renovarClients.length===0){banner.style.display='none'}
+  else{
+    banner.style.display='block';
+    document.getElementById('renovar-banner-sub').textContent=`${renovarClients.length} cliente${renovarClients.length>1?'s':''} en ventana de renovación — podés cargarles otro crédito ahora`;
+    document.getElementById('renovar-list').innerHTML=renovarClients.map(c=>{
+      const d=daysUntil(c.renewal);
+      return`<div class="renovar-row">
+        <span class="renovar-days do">${d===0?'HOY':d===1?'1 día':d+' días'}</span>
+        <span class="renovar-name">${c.name}</span>
+        <span class="renovar-info">${c.credits} cr · vence ${fmtDShort(c.renewal)}</span>
+        <button class="btn-renew-orange" onclick="renewClient('${c.id}')">↺ Renovar</button>
+      </div>`;
+    }).join('');
+  }
+
+  // TABLE (desktop)
+  const tbody=document.getElementById('clients-tbody');
+  const emptyT=document.getElementById('empty-table');
+  if(cl.length===0){tbody.innerHTML='';emptyT.style.display='block'}
+  else{
+    emptyT.style.display='none';
+    tbody.innerHTML=cl.map(c=>{
+      const d=daysUntil(c.renewal);
+      const s=getStatus(d);
+      const rowCls=s==='renovar'?'row-orange':s==='vencido'?'row-red':'';
+      return`<tr class="${rowCls}">
         <td style="font-weight:500">${c.name}</td>
-        <td style="color:var(--text-muted)">${formatDate(c.contractDate)}</td>
-        <td>${creditsDots(c.credits)} <span style="font-size:12px;color:var(--text-muted);margin-left:6px">${c.credits} cr · ${c.credits*30}d</span></td>
-        <td style="color:var(--text-muted)">${formatDate(c.renewal)}</td>
-        <td>${daysLabel(days)}</td>
-        <td>${statusBadge(days)}</td>
-        <td style="color:var(--violet-light);font-weight:500">${fmtMoney(c.credits * c.price)}</td>
-        <td style="display:flex;gap:8px;align-items:center">
-          ${days <= 7 ? `<button class="btn-renew" onclick="renewClient('${c.id}')">↺ Renovar</button>` : ''}
+        <td style="color:var(--tm)">${fmtDShort(c.contractDate)}</td>
+        <td>${dotsDots(c.credits)} <span style="font-size:11px;color:var(--tm);margin-left:5px">${c.credits}cr·${c.credits*30}d</span></td>
+        <td style="color:var(--tm)">${fmtDShort(c.renewal)}</td>
+        <td>${daysLabel(d)}</td>
+        <td>${statusBadge(d)}</td>
+        <td style="color:var(--vl);font-weight:500">${fmtM(c.credits*c.price)}</td>
+        <td><div style="display:flex;gap:6px;align-items:center">
+          ${(s==='renovar'||s==='vencido')?`<button class="${s==='renovar'?'btn-renew-orange':'btn-renew'}" onclick="renewClient('${c.id}')">↺ Renovar</button>`:''}
           <button class="btn-icon" onclick="deleteClient('${c.id}')">✕</button>
-        </td>
+        </div></td>
       </tr>`;
     }).join('');
   }
-  const active = clients.filter(c => daysUntil(c.renewal) > 7).length;
-  const urgent = clients.filter(c => { const d=daysUntil(c.renewal); return d>=0&&d<=7; }).length;
-  const expired = clients.filter(c => daysUntil(c.renewal) < 0).length;
-  const revenue = clients.reduce((s,c) => s + c.credits * c.price, 0);
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total clientes</div><div class="stat-value violet">${clients.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Activos</div><div class="stat-value green">${active}</div></div>
-    <div class="stat-card"><div class="stat-label">Urgente ≤7d</div><div class="stat-value yellow">${urgent}</div></div>
-    <div class="stat-card"><div class="stat-label">Vencidos</div><div class="stat-value red">${expired}</div></div>
-    <div class="stat-card"><div class="stat-label">Ingresos activos</div><div class="stat-value violet" style="font-size:20px">${fmtMoney(revenue)}</div></div>`;
+
+  // CARDS (mobile)
+  const cards=document.getElementById('client-cards');
+  cards.innerHTML=cl.length===0?'':cl.map(c=>{
+    const d=daysUntil(c.renewal);
+    const s=getStatus(d);
+    const cardCls=s==='renovar'?'card-orange':s==='vencido'?'card-red':'';
+    return`<div class="client-card ${cardCls}">
+      <div class="cc-top">
+        <div class="cc-name">${c.name}</div>
+        ${statusBadge(d)}
+      </div>
+      <div class="cc-body">
+        <div class="cc-item">Vence <span>${fmtDShort(c.renewal)}</span></div>
+        <div class="cc-item">Días <span>${daysLabel(d)}</span></div>
+        <div class="cc-item">Créditos <span>${c.credits} cr · ${c.credits*30}d</span></div>
+        <div class="cc-item">Monto <span style="color:var(--vl)">${fmtM(c.credits*c.price)}</span></div>
+      </div>
+      <div class="cc-actions">
+        ${(s==='renovar'||s==='vencido')?`<button class="${s==='renovar'?'btn-renew-orange':'btn-renew'}" onclick="renewClient('${c.id}')">↺ Renovar</button>`:''}
+        <button class="btn-icon" onclick="deleteClient('${c.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-// ══ RENDER DASHBOARD ══════════════════════════════════════════════════════════
-function renderDashboard() {
-  const clients = clientsCache;
-  const t = today();
-  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  let weekHtml = '';
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(t); d.setDate(t.getDate() + i);
-    const dStr = d.toISOString().split('T')[0];
-    const dayClients = clients.filter(c => c.renewal === dStr);
-    weekHtml += `<div class="day-col ${i===0?'today':''}">
-      <div class="day-name">${dayNames[d.getDay()]}</div>
+// ── RENDER DASHBOARD ──────────────────────────────────────────────────────────
+function renderDashboard(){
+  const cl=cache; const t=today();
+  const dn=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let wh='';
+  for(let i=0;i<7;i++){
+    const d=new Date(t);d.setDate(t.getDate()+i);
+    const ds=d.toISOString().split('T')[0];
+    const dc=cl.filter(c=>c.renewal===ds);
+    wh+=`<div class="day-col ${i===0?'today':''}">
+      <div class="day-name">${dn[d.getDay()]}</div>
       <div class="day-num">${d.getDate()}</div>
-      ${dayClients.map(c => `<div class="day-client ${daysUntil(c.renewal)<=3?'urgent':''}">${c.name}</div>`).join('') || '<div style="font-size:11px;color:var(--text-dim)">—</div>'}
+      ${dc.map(c=>{const dys=daysUntil(c.renewal);return`<div class="day-chip ${dys<=0?'urgent':dys<=3?'window':''}">${c.name}</div>`}).join('')||'<div style="font-size:10px;color:var(--td)">—</div>'}
     </div>`;
   }
-  document.getElementById('week-grid').innerHTML = weekHtml;
+  document.getElementById('week-grid').innerHTML=wh;
 
-  const urgentClients = clients.filter(c => { const d=daysUntil(c.renewal); return d>=0&&d<=3; }).sort((a,b)=>daysUntil(a.renewal)-daysUntil(b.renewal));
-  document.getElementById('urgent-list').innerHTML = urgentClients.length===0
-    ? '<div class="empty"><div class="empty-icon">🎉</div>Ningún cliente urgente esta semana</div>'
-    : urgentClients.map(c => { const d=daysUntil(c.renewal); return `<div class="alert-row">
-        <span class="badge badge-red"><span class="badge-dot"></span>${d===0?'HOY':d+'d'}</span>
-        <span class="alert-name">${c.name}</span>
-        <span class="alert-date">${formatDate(c.renewal)}</span>
-        <button class="btn-renew" onclick="renewClient('${c.id}');renderDashboard()">↺ Renovar</button>
-      </div>`; }).join('');
+  const urgCl=cl.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=3}).sort((a,b)=>daysUntil(a.renewal)-daysUntil(b.renewal));
+  document.getElementById('urgent-list').innerHTML=urgCl.length===0
+    ?'<div class="empty"><div class="empty-icon">🎉</div>Nadie en ventana de renovación</div>'
+    :urgCl.map(c=>{const d=daysUntil(c.renewal);return`<div class="alert-row">
+      <span class="badge bo"><span class="bdot"></span>${d===0?'HOY':d+'d'}</span>
+      <span class="alert-name">${c.name}</span>
+      <span class="alert-date">${fmtDShort(c.renewal)}</span>
+      <span style="font-size:12px;color:var(--tm)">${fmtM(c.credits*c.price)}</span>
+      <button class="btn-renew-orange" onclick="renewClient('${c.id}');renderDashboard()">↺ Renovar</button>
+    </div>`}).join('');
 
-  const monthClients = clients.filter(c => { const d=daysUntil(c.renewal); return d>3&&d<=30; }).sort((a,b)=>daysUntil(a.renewal)-daysUntil(b.renewal));
-  document.getElementById('month-list').innerHTML = monthClients.length===0
-    ? '<div class="empty" style="padding:30px"><div class="empty-icon">📅</div>Sin vencimientos en los próximos 30 días</div>'
-    : monthClients.map(c => `<div class="alert-row">
-        ${daysLabel(daysUntil(c.renewal))}
-        <span class="alert-name">${c.name}</span>
-        <span class="alert-date">${formatDate(c.renewal)}</span>
-        <span style="font-size:13px;color:var(--violet-light)">${fmtMoney(c.credits*c.price)}</span>
-      </div>`).join('');
+  const mnCl=cl.filter(c=>{const d=daysUntil(c.renewal);return d>3&&d<=30}).sort((a,b)=>daysUntil(a.renewal)-daysUntil(b.renewal));
+  document.getElementById('month-list').innerHTML=mnCl.length===0
+    ?'<div class="empty" style="padding:30px"><div class="empty-icon">📅</div>Sin vencimientos próximos</div>'
+    :mnCl.map(c=>`<div class="alert-row">
+      ${daysLabel(daysUntil(c.renewal))}
+      <span class="alert-name">${c.name}</span>
+      <span class="alert-date">${fmtDShort(c.renewal)}</span>
+      <span style="font-size:12px;color:var(--vl)">${fmtM(c.credits*c.price)}</span>
+    </div>`).join('');
 
-  const thisWeek = clients.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=7;}).length;
-  const thisMonth = clients.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=30;}).length;
-  const expired = clients.filter(c=>daysUntil(c.renewal)<0).length;
-  const weekRevenue = clients.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=7;}).reduce((s,c)=>s+c.credits*c.price,0);
-  document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Renuevan esta semana</div><div class="stat-value yellow">${thisWeek}</div></div>
-    <div class="stat-card"><div class="stat-label">Renuevan este mes</div><div class="stat-value violet">${thisMonth}</div></div>
-    <div class="stat-card"><div class="stat-label">Vencidos sin renovar</div><div class="stat-value red">${expired}</div></div>
-    <div class="stat-card"><div class="stat-label">$ esperado esta semana</div><div class="stat-value green" style="font-size:18px">${fmtMoney(weekRevenue)}</div></div>`;
+  const tw=cl.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=7}).length;
+  const tm2=cl.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=30}).length;
+  const venc=cl.filter(c=>daysUntil(c.renewal)<0).length;
+  const wr=cl.filter(c=>{const d=daysUntil(c.renewal);return d>=0&&d<=7}).reduce((s,c)=>s+c.credits*c.price,0);
+  document.getElementById('stats-dash').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Renovar esta semana</div><div class="stat-value sv-orange">${tw}</div></div>
+    <div class="stat-card"><div class="stat-label">Este mes</div><div class="stat-value sv-violet">${tm2}</div></div>
+    <div class="stat-card"><div class="stat-label">Vencidos</div><div class="stat-value sv-red">${venc}</div></div>
+    <div class="stat-card"><div class="stat-label">$ esperado semana</div><div class="stat-value sv-green" style="font-size:18px">${fmtM(wr)}</div></div>`;
 }
 
-// ══ RENDER CALENDARIO ═════════════════════════════════════════════════════════
-let calWeekOffset = 0;
-function changeWeek(dir) { calWeekOffset += dir; renderCalendar(); }
-function resetWeek() { calWeekOffset = 0; renderCalendar(); }
-function getWeekStart(offset) {
-  const t = today(); const day = t.getDay();
-  const diff = day===0 ? -6 : 1-day;
-  const monday = new Date(t); monday.setDate(t.getDate()+diff+offset*7); return monday;
+// ── RENDER CALENDARIO ─────────────────────────────────────────────────────────
+let calOff=0;
+function changeWeek(d){calOff+=d;renderCalendar()}
+function resetWeek(){calOff=0;renderCalendar()}
+function getMonday(off){
+  const t=today(),day=t.getDay(),diff=day===0?-6:1-day;
+  const m=new Date(t);m.setDate(t.getDate()+diff+off*7);return m;
 }
-function renderCalendar() {
-  const clients = clientsCache;
-  const weekStart = getWeekStart(calWeekOffset);
-  const dayNames = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
-  const fmt = d => d.toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
-  document.getElementById('cal-week-label').textContent = fmt(weekStart)+' — '+fmt(weekEnd)+' · '+weekEnd.getFullYear();
-  const todayStr = today().toISOString().split('T')[0];
-  let weekRevenue=0, weekCount=0, gridHtml=''; const weekClients=[];
-  for (let i=0;i<7;i++) {
-    const d=new Date(weekStart); d.setDate(weekStart.getDate()+i);
-    const dStr=d.toISOString().split('T')[0];
-    const dayClients=clients.filter(c=>c.renewal===dStr);
-    if (dayClients.length) weekClients.push(...dayClients.map(c=>({...c,_dStr:dStr})));
-    weekRevenue+=dayClients.reduce((s,c)=>s+c.credits*c.price,0);
-    weekCount+=dayClients.length;
-    const cardsHtml = dayClients.length===0 ? '<div class="cal-empty">—</div>'
-      : dayClients.map(c=>{ const days=daysUntil(c.renewal); const cls=days<0?'done-card':days<=3?'urgent':'';
-        return `<div class="cal-client-card ${cls}"><div class="cal-client-name">${c.name}</div><div class="cal-client-money">${fmtMoney(c.credits*c.price)}</div></div>`; }).join('');
-    gridHtml+=`<div class="cal-day ${dStr===todayStr?'is-today':''} ${dayClients.length?'has-clients':''}">
-      <div class="cal-day-header"><div><div class="cal-day-name">${dayNames[i]}</div><div class="cal-day-num">${d.getDate()}</div></div>
-      ${dayClients.length?`<div class="cal-count-badge">${dayClients.length}</div>`:''}</div>${cardsHtml}</div>`;
+function renderCalendar(){
+  const cl=cache;
+  const ws=getMonday(calOff);
+  const we=new Date(ws);we.setDate(ws.getDate()+6);
+  const fmt=d=>d.toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
+  document.getElementById('cal-label').textContent=fmt(ws)+' — '+fmt(we)+' '+we.getFullYear();
+  const dn=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const todStr=today().toISOString().split('T')[0];
+  let rev=0,cnt=0,gh='';const wc=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(ws);d.setDate(ws.getDate()+i);
+    const ds=d.toISOString().split('T')[0];
+    const dc=cl.filter(c=>c.renewal===ds);
+    if(dc.length)wc.push(...dc.map(c=>({...c,_ds:ds})));
+    rev+=dc.reduce((s,c)=>s+c.credits*c.price,0);cnt+=dc.length;
+    const ch=dc.length===0?'<div class="cal-empty-day">—</div>':dc.map(c=>{
+      const dys=daysUntil(c.renewal);
+      const cls=dys<0?'w-red':dys<=3?'w-orange':'';
+      return`<div class="cal-card ${cls}"><div class="cal-cname">${c.name}</div><div class="cal-cmoney">${fmtM(c.credits*c.price)}</div></div>`;
+    }).join('');
+    gh+=`<div class="cal-day ${ds===todStr?'is-today':''} ${dc.length?'has-c':''}">
+      <div class="cal-dh"><div><div class="cal-dname">${dn[i]}</div><div class="cal-dnum">${d.getDate()}</div></div>
+      ${dc.length?`<div class="cal-badge">${dc.length}</div>`:''}</div>${ch}</div>`;
   }
-  document.getElementById('cal-grid').innerHTML = gridHtml;
-  const wl = calWeekOffset===0?'esta semana':calWeekOffset>0?`en ${calWeekOffset} sem.`:`hace ${Math.abs(calWeekOffset)} sem.`;
-  document.getElementById('cal-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Renuevan ${wl}</div><div class="stat-value violet">${weekCount}</div></div>
-    <div class="stat-card"><div class="stat-label">Ingreso esperado</div><div class="stat-value green" style="font-size:22px">${fmtMoney(weekRevenue)}</div></div>
-    <div class="stat-card"><div class="stat-label">Promedio por cliente</div><div class="stat-value yellow" style="font-size:20px">${weekCount?fmtMoney(Math.round(weekRevenue/weekCount)):'—'}</div></div>`;
-  const listEl = document.getElementById('cal-list');
-  listEl.innerHTML = weekClients.length===0 ? '<div class="empty"><div class="empty-icon">📭</div>Nadie renueva esta semana</div>'
-    : [...weekClients].sort((a,b)=>new Date(a._dStr)-new Date(b._dStr)).map(c=>{const days=daysUntil(c.renewal); return `<div class="alert-row">
-      <span style="font-size:13px;color:var(--text-muted);min-width:90px">${formatDate(c._dStr)}</span>
-      ${daysLabel(days)} <span class="alert-name" style="font-weight:500">${c.name}</span>
-      <span style="font-size:12px;color:var(--text-muted)">${c.credits} cr · ${c.credits*30}d</span>
-      <span style="color:var(--violet-light);font-weight:500;margin-left:auto">${fmtMoney(c.credits*c.price)}</span>
-      ${days<=7?`<button class="btn-renew" onclick="renewClient('${c.id}');renderCalendar()">↺ Renovar</button>`:''}
-    </div>`;}).join('');
+  document.getElementById('cal-grid').innerHTML=gh;
+  const wl=calOff===0?'esta semana':calOff>0?`sem. +${calOff}`:`sem. ${calOff}`;
+  document.getElementById('stats-cal').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Renuevan ${wl}</div><div class="stat-value sv-violet">${cnt}</div></div>
+    <div class="stat-card"><div class="stat-label">Ingreso esperado</div><div class="stat-value sv-green" style="font-size:20px">${fmtM(rev)}</div></div>
+    <div class="stat-card"><div class="stat-label">Promedio</div><div class="stat-value sv-yellow" style="font-size:20px">${cnt?fmtM(Math.round(rev/cnt)):'—'}</div></div>`;
+  const listEl=document.getElementById('cal-list');
+  listEl.innerHTML=wc.length===0?'<div class="empty"><div class="empty-icon">📭</div>Nadie renueva esta semana</div>'
+    :[...wc].sort((a,b)=>new Date(a._ds)-new Date(b._ds)).map(c=>{const d=daysUntil(c.renewal);return`<div class="alert-row">
+      <span style="font-size:12px;color:var(--tm);min-width:70px">${fmtDShort(c._ds)}</span>
+      ${daysLabel(d)}
+      <span class="alert-name" style="font-weight:500">${c.name}</span>
+      <span style="font-size:12px;color:var(--tm)">${c.credits}cr</span>
+      <span style="color:var(--vl);font-weight:500">${fmtM(c.credits*c.price)}</span>
+      ${d<=3?`<button class="${d<0?'btn-renew':'btn-renew-orange'}" onclick="renewClient('${c.id}');renderCalendar()">↺</button>`:''}
+    </div>`}).join('');
 }
 
-// ══ NAVIGATION ════════════════════════════════════════════════════════════════
-function showPage(name) {
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab,.bnav-btn').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  document.querySelector(`[onclick="showPage('${name}')"]`).classList.add('active');
-  if (name==='dashboard') renderDashboard();
-  if (name==='calendario') renderCalendar();
+  document.querySelectorAll(`[onclick="showPage('${name}')"]`).forEach(el=>el.classList.add('active'));
+  if(name==='dashboard')renderDashboard();
+  if(name==='calendario')renderCalendar();
 }
-function renderAll() { renderClients(); }
+function renderAll(){renderClients();const p=document.querySelector('.page.active');if(p?.id==='page-dashboard')renderDashboard();if(p?.id==='page-calendario')renderCalendar()}
 
-// ══ INIT ══════════════════════════════════════════════════════════════════════
-document.getElementById('inp-date').value = today().toISOString().split('T')[0];
-updateCreditsHint();
-document.getElementById('inp-price').addEventListener('input', updateCreditsHint);
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.getElementById('inp-date').value=today().toISOString().split('T')[0];
+updateHint();
+document.getElementById('inp-price').addEventListener('input',updateHint);
 </script>
 </body>
 </html>
