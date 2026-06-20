@@ -531,10 +531,14 @@ async function renewClient(id){
   if(!c)return;
   c.history=c.history||[];
   c.history.push(c.renewal);
-  // La renovación arranca desde la fecha de vencimiento original (no desde hoy)
-  // Si está vencido, arranca desde hoy
+  // Lógica de renovación:
+  // - Dentro de la ventana (≤3 días, aún no venció): el nuevo crédito arranca
+  //   justo después de que termine el actual. El cliente no pierde ni gana días.
+  // - Ya venció (days < 0): el nuevo ciclo arranca desde HOY.
   const days=daysUntil(c.renewal);
-  const baseDate=days<0?today().toISOString().split('T')[0]:c.renewal;
+  const baseDate = days >= 0
+    ? c.renewal                                  // encadena desde el vencimiento actual
+    : today().toISOString().split('T')[0];       // venció → arranca desde hoy
   c.contractDate=baseDate;
   c.renewal=addDays(baseDate,c.credits*30);
   const ok=await dbUpd(c);
